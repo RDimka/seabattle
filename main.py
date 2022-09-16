@@ -319,7 +319,6 @@ class Game():
             if i == len(board.board_ships):
                 create_attempt_num = 0
         return True
-
         # greet — метод, который в консоли приветствует пользователя и рассказывает о формате ввода.
 
     def greet(self):
