@@ -1,7 +1,7 @@
 # SeaBattle
 import random
 import copy
-
+import time
 
 # Класс исключений
 class MyError(Exception):
@@ -48,7 +48,7 @@ class Ship():
 
 #класс Board — игровая доска.
 class Board():
-    def __init__(self, hid=True, alive=6):
+    def __init__(self, hid=False, alive=7):
         # двумерный списко состояний каждой из клеток, инициализация
         self.board_state = [["O"] * 6 for i in range(6)]
 
@@ -62,7 +62,7 @@ class Board():
                             Ship(1, Dot(-1, -1), 'v', 1)]
 
         # Параметр hid типа bool — информация о том, нужно ли скрывать корабли на доске (для вывода доски врага) или нет (для своей доски).
-        self.hid = True
+        self.hid = False
 
         # Количество живых кораблей на доске.
         self.alive_ships = alive
@@ -103,7 +103,7 @@ class Board():
 
     def contour(self, ship):
         ship_area = []
-        ship_current_dot = ship.bow_dot
+        ship_current_dot = copy.deepcopy(ship.bow_dot)
         i = ship.long + 2
         ship_current_dot.x = ship_current_dot.x - 1
         ship_current_dot.y = ship_current_dot.y - 1
@@ -136,10 +136,17 @@ class Board():
 
     # Метод, который выводит доску в консоль в зависимости от параметра hid.
     def board_layout(self):
-        print()
+        #print()
         print("    | 1 | 2 | 3 | 4 | 5 | 6  ")
         print("  -------------------------- ")
-        for i, row in enumerate(self.board_state):
+
+        board = copy.deepcopy(self.board_state)#копируем, что скрыть при необходимости корабли
+        if (self.hid==True):
+            for i in range(6):
+                for j in range(6):
+                    board[i][j] = 'O' if  board[i][j] == "s" else board[i][j]
+
+        for i, row in enumerate(board):
             row_str = f"  {i + 1} | {' | '.join(row)} | "
             print(row_str)
 
@@ -158,8 +165,16 @@ class Board():
 
         # помечаем Т (промах), Х (попал)
         self.board_state[dot.x][dot.y] = "T" if self.board_state[dot.x][dot.y] == "O" else "X"
-        # Если попал вернем True
-        return True if self.board_state[dot.x][dot.y] == "X" else False
+        # Если попал вернем True и удалим жизнь
+        if self.board_state[dot.x][dot.y] == "X":
+            for i in self.board_ships:
+                if dot in i.dots():
+                    i.life_num -= 1
+                    if i.life_num == 0:
+                        self.alive_ships -= 1
+            return True
+        else:
+            return False
 
 
 # класс Player — класс игрока в игру (и AI, и пользователь).
@@ -189,7 +204,9 @@ class Player():
 class AI(Player):
     def ask(self):
         # случайные координаты точки
-        return Dot(random.randint(0, 5), random.randint(0, 5))
+        dot = Dot(random.randint(0, 5), random.randint(0, 5))
+        print(f"Противник сходил: {dot.x+1} {dot.y+1}")
+        return dot
 
 class User(Player):
     def ask(self):
@@ -206,10 +223,15 @@ class User(Player):
                 continue
 
             if not (cords[0].isdigit()) or not (cords[1].isdigit()):
-                print(" Введите числа! ")
+                print(" Введите числа от 1 до 6! ")
                 continue
 
-            shot_point.x, shot_point.y = int(cords[0]), int(cords[1])
+            if int(cords[0]) < 1 or int(cords[1]) > 6\
+                    or int(cords[1]) < 1 or int(cords[1]) >6:
+                print(" Введите числа от 1 до 6! ")
+                continue
+
+            shot_point.x, shot_point.y = int(cords[0])-1, int(cords[1])-1
             return shot_point
 
 class Game():
@@ -255,23 +277,72 @@ class Game():
         # loop — метод с самим игровым циклом.
     def loop(self):
         while True:
+            print("")
+            print("Ход игрока:")
+            print("")
+            print("     Доска противника:")
+            self.ai_board.board_layout()
+
+            # self.ai_board.hid = False
+            # self.ai_board.board_layout()
+            # self.ai_board.hid = True
+
             while self.user.move():  # True если попал
-                print("Попал")
-                if self.user_board.alive_ships == 0:
+                print("Попал! Еще один ход.")
+                print("")
+                print("     Доска противника:")
+                self.ai_board.board_layout()
+
+                # self.ai_board.hid = False
+                # self.ai_board.board_layout()
+                # self.ai_board.hid = True
+
+                if self.ai_board.alive_ships == 0:
+                    print("")
                     print("Вы выиграли! Поздравляю!")
                     return True
             print("Промазал!")
-            self.ai_board.board_layout()
+            print(" ")
 
-            #while self.ai.move():  # True если попал
-            #    print("Попал")
-            #    if self.ai.alive_ships == 0:
-            #        print("Вы проиграли!")
-            #        return True
+            print("Ход противника:")
+            while self.ai.move():  # True если попал
+                print("Попал! Еще один ход противника.")
+                print(" ")
+                print("     Доска игрока:")
+                self.user_board.board_layout()
+                if self.user_board.alive_ships == 0:
+                    print("Вы проиграли!")
+                    return True
+            print("Промазал!")
+            print(" ")
+            print("     Доска игрока:")
+            self.user_board.board_layout()
+            time.sleep(3)
+            print(" ")
+
 
         # start — запуск игры. Сначала вызываем greet, а потом loop.
     def start(self):
         self.greet()
+
+        self.random_board(self.user_board)
+        self.user_board.hid = False
+        print(" ")
+        print("Доска пользователя")
+        self.user_board.board_layout()
+
+        self.random_board(self.ai_board)
+        self.ai_board.hid = True
+        print(" ")
+        print("Доска соперника")
+        self.ai_board.board_layout()
+
+        # self.ai_board.hid = True
+        # self.ai_board.board_layout()
+        # self.ai_board.hid = False
+        # self.ai_board.board_layout()
+        # self.ai_board.hid = True
+
         self.loop()
         pass
 
@@ -279,16 +350,4 @@ class Game():
 board_user = Board()
 board_ai = Board()
 game = Game(User(board_user, board_ai), AI(board_ai, board_user))
-# инициализация досок
-# отлавливаем исключения
-game.random_board(game.user_board)
-game.user_board.hid = True
-print("Доска пользователя")
-game.user_board.board_layout()
-
-game.random_board(game.ai_board)
-game.ai_board.hid = True
-print("Доска соперника")
-game.ai_board.board_layout()
-
-game.greet()
+game.start()
