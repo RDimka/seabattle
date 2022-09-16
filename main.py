@@ -3,18 +3,10 @@ import random
 import copy
 
 
-# Классы исключений
-# Например, когда игрок пытается выстрелить в клетку за пределами поля, во внутренней логике должно
-# выбрасываться соответствующее исключение BoardOutException, а потом отлавливаться во внешней логике,
-# выводя сообщение об этой ошибке пользователю.
+# Класс исключений
 class MyError(Exception):
     def __init__(self, text):
         self.txt = text
-
-
-# Использование в коде
-# except MyError as mr:
-#   print(mr)
 
 # класс Dot — класс точек на поле
 class Dot():
@@ -23,21 +15,8 @@ class Dot():
     def __init__(self, x=0, y=0):
         self.x = x
         self.y = y
-
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y
-
-
-#    def __str__(self):
-#        return f'Dot: {self.x, self.y}'
-
-# тест Dot
-# f = Dot(1,1)
-# s = Dot(1,1)
-# if f == s:
-#    print ("Равны")
-# else:
-#    print ("Не равны")
 
 # Класс Ship — корабль на игровом поле, который описывается параметрами:
 # Длина.
@@ -47,7 +26,6 @@ class Dot():
 # И имеет метод dots, который возвращает список всех точек корабля.
 class Ship():
     long, bow_dot, direction, life_num = None, None, None, None
-
     def __init__(self, *args):
         self.long = args[0]
         self.bow_dot = args[1]
@@ -68,17 +46,7 @@ class Ship():
             i -= 1
         return ship_dot_list  # список всех точек корабля
 
-
-# Тест Ship
-# start = Dot(1,1)
-# sh = Ship(4, start, "h", 4)
-# ship_dots = sh.dots()
-# for dot in ship_dots:
-#    print(f"{dot.x} {dot.y}")
-
-
-# Самый важный класс во внутренней логике — класс Board — игровая доска.
-
+#класс Board — игровая доска.
 class Board():
     def __init__(self, hid=True, alive=6):
         # двумерный списко состояний каждой из клеток, инициализация
@@ -100,7 +68,6 @@ class Board():
         self.alive_ships = alive
 
         # Метод add_ship, который ставит корабль на доску (если ставить не получается, выбрасываем исключения).
-
     def add_ship(self, ship_num):
         attempt = 2000
         while attempt:
@@ -131,18 +98,9 @@ class Board():
             if not next_iter:  # удачная попытка, фиксируем корабль
                 for i in ship_dots:
                     self.board_state[i.x][i.y] = "s"
-                #self.board_layout()
-                #print(attempt)
                 return True
-        raise MyError("BoardAddShipFailed")
-        return False
+        raise MyError("BoardAddShipFailed") #исключение при не возможности установить корабль на доску
 
-    #  except
-
-    #  else:#если все хорошо в try
-    #    return()
-
-    # Метод contour, который обводит корабль по контуру. Он будет полезен и в ходе самой игры, и в при расстановке кораблей (помечает соседние точки, где корабля по правилам быть не может).
     def contour(self, ship):
         ship_area = []
         ship_current_dot = ship.bow_dot
@@ -153,7 +111,7 @@ class Board():
             while i:
                 if 0 <= ship_current_dot.x <= 5:
                     y = 3
-                    while y:  # добавляем дотчки одной строки
+                    while y:  # добавляем точки одной строки
                         if 0 <= ship_current_dot.y <= 5:
                             ship_area.append(Dot(ship_current_dot.x, ship_current_dot.y))
                         ship_current_dot.y += 1
@@ -166,7 +124,7 @@ class Board():
             while i:
                 if 0 <= ship_current_dot.y <= 5:
                     y = 3
-                    while y:  # добавляем дотчки одной строки
+                    while y:  # добавляем дотчки одного столбца
                         if 0 <= ship_current_dot.x <= 5:
                             ship_area.append(Dot(ship_current_dot.x, ship_current_dot.y))
                         ship_current_dot.x += 1
@@ -178,7 +136,6 @@ class Board():
 
     # Метод, который выводит доску в консоль в зависимости от параметра hid.
     def board_layout(self):
-        # if self.hid:
         print()
         print("    | 1 | 2 | 3 | 4 | 5 | 6  ")
         print("  -------------------------- ")
@@ -186,7 +143,6 @@ class Board():
             row_str = f"  {i + 1} | {' | '.join(row)} | "
             print(row_str)
 
-    # Метод out, который для точки (объекта класса Dot) возвращает True, если точка выходит за пределы поля, и False, если не выходит.
     def out(self, dot):
         # проверка в поле?
         return True if dot.x > 5 or dot.y > 5 else False
@@ -199,25 +155,14 @@ class Board():
             raise MyError("BoardOutException")
         if self.board_state[dot.x][dot.y] == 'X' or self.board_state[dot.x][dot.y] == 'T':
             raise MyError("UsedPointException")
-        # except MyError as err:
-        #    print(err)
-        # else:
+
         # помечаем Т (промах), Х (попал)
         self.board_state[dot.x][dot.y] = "T" if self.board_state[dot.x][dot.y] == "O" else "X"
         # Если попал вернем True
         return True if self.board_state[dot.x][dot.y] == "X" else False
 
 
-# Тест Board
-# brd = Board()
-# brd.board_layout()
-# d = Dot(0, 0)
-# print("Промазал" if brd.out(d) else "Попал")
-# print(brd.shot(d))
-# brd.board_layout()
-
-
-# класс Player — класс игрока в игру (и AI, и пользователь). Этот класс будет родителем для классов с AI и с пользователем.
+# класс Player — класс игрока в игру (и AI, и пользователь).
 class Player():
     def __init__(self, board_player, board_enemy):
         self.board_player = board_player
@@ -227,7 +172,7 @@ class Player():
     def ask(self):
         pass
 
-    # move — метод, который делает ход в игре. Тут мы вызываем метод ask, делаем выстрел по вражеской доске (метод Board.shot), отлавливаем исключения, и если они есть, пытаемся повторить ход. Метод должен возвращать True, если этому игроку нужен повторный ход (например, если он выстрелом подбил корабль).
+    # move — метод, который делает ход в игре.
     def move(self):
         i = 1000
         while i:
@@ -240,28 +185,11 @@ class Player():
         print("Использовал 1000 ходов, следующий )")
         return False
 
-
-# тест Player
-# player = Player(Board(), Board())
-# if player.move():
-#     print ("Еще один ход")
-# else:
-#     print ("Следующий")
-
 # унаследовать классы AI и User от Player и переопределить в них метод ask. Для AI это будет выбор случайной точки, а для User этот метод будет спрашивать координаты точки из консоли.
 class AI(Player):
     def ask(self):
         # случайные координаты точки
         return Dot(random.randint(0, 5), random.randint(0, 5))
-
-
-# Тест AI
-# player = AI(Board(), Board())
-# i=100
-# while i:
-#  dot = player.ask()
-#  print(f'{dot.x} {dot.y}')
-#  i -= 1
 
 class User(Player):
     def ask(self):
@@ -284,12 +212,6 @@ class User(Player):
             shot_point.x, shot_point.y = int(cords[0]), int(cords[1])
             return shot_point
 
-
-# Тест User
-# player = User(Board(), Board())
-# dot = player.ask()
-# print(f'{dot.x} {dot.y}')
-
 class Game():
     def __init__(self, user, ai):
         self.user = user
@@ -297,13 +219,11 @@ class Game():
         self.ai = ai
         self.ai_board = ai.board_player
 
-        # random_board — метод генерирует случайную доску. Для этого мы просто пытаемся в случайные клетки изначально пустой доски расставлять корабли (в бесконечном цикле пытаемся поставить корабль в случайную доску, пока наша попытка не окажется успешной). Лучше расставлять сначала длинные корабли, а потом короткие. Если было сделано много (несколько тысяч) попыток установить корабль, но это не получилось, значит доска неудачная и на неё корабль уже не добавить. В таком случае нужно начать генерировать новую доску.
-
+        # random_board — метод генерирует случайную доску.
     def random_board(self, board):
 
         create_attempt_num = 10 #количество попыток создать доску
         while create_attempt_num:
-            # обнулили доску
             board.__init__()
             # расставляем корабли
             i = 0
@@ -319,8 +239,8 @@ class Game():
             if i == len(board.board_ships):
                 create_attempt_num = 0
         return True
-        # greet — метод, который в консоли приветствует пользователя и рассказывает о формате ввода.
 
+        # greet — метод, который в консоли приветствует пользователя и рассказывает о формате ввода.
     def greet(self):
         print("-------------------")
         print("  Приветсвуем вас  ")
@@ -332,8 +252,7 @@ class Game():
         print(" y - номер столбца ")
         pass
 
-        # loop — метод с самим игровым циклом. Там мы просто последовательно вызываем метод mode для игроков и делаем проверку, сколько живых кораблей осталось на досках, чтобы определить победу.
-
+        # loop — метод с самим игровым циклом.
     def loop(self):
         while True:
             while self.user.move():  # True если попал
@@ -351,13 +270,12 @@ class Game():
             #        return True
 
         # start — запуск игры. Сначала вызываем greet, а потом loop.
-
     def start(self):
         self.greet()
         self.loop()
         pass
 
-
+#Проверки, удалить
 board_user = Board()
 board_ai = Board()
 game = Game(User(board_user, board_ai), AI(board_ai, board_user))
